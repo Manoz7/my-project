@@ -1,0 +1,41 @@
+
+name: Daily Activity
+
+on:
+  schedule:
+    - cron: "17 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  activity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update activity log
+        run: |
+          echo "Activity: $(date -u)" >> activity.log
+
+      - name: Commit and push
+        env:
+          GH_NAME: ${{ vars.GH_NAME }}
+          GH_EMAIL: ${{ vars.GH_EMAIL }}
+        run: |
+          git config user.name "$GH_NAME"
+          git config user.email "$GH_EMAIL"
+
+          git add activity.log
+          git commit -m "chore: daily activity"
+
+          for attempt in 1 2 3; do
+            git pull --rebase &&
+            git push && exit 0
+            sleep 10
+          done
+
+          exit 1
